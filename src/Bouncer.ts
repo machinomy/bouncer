@@ -44,6 +44,12 @@ async function removePeer(web3: Web3, id: string): Promise<void> {
   })
 }
 
+function isBlacklisted(peer: Web3.Peer, whitelist: Array<string>): boolean {
+  let isWhitelisted = whitelist.includes(peer.id)
+  let isLight = peer.caps.includes('les/1') || peer.caps.includes('les/2')
+  return isLight && !isWhitelisted
+}
+
 export default class Bouncer extends events.EventEmitter {
   web3: Web3
   whitelist: Array<string>
@@ -61,7 +67,7 @@ export default class Bouncer extends events.EventEmitter {
         let peers = await getPeers(this.web3)
         log('Got peers', peers)
         peers.forEach(async peer => {
-          if (!this.whitelist.includes(peer.id)) {
+          if (isBlacklisted(peer, this.whitelist)) {
             await removePeer(this.web3, peer.id)
             this.emit('removed', peer)
             log('Removed peer', peer)
